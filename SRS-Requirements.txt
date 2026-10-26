@@ -1,0 +1,229 @@
+TASK 3 – REQUIREMENTS, ARCHITECTURE AND TECHNOLOGY SETUP
+
+SOFTWARE REQUIREMENTS SPECIFICATION (SRS)
+DIGITAL WALLET DEMONSTRATION PLATFORM
+
+
+1. PROJECT OVERVIEW
+
+The Digital Wallet Demonstration Platform is a simulated wallet application
+that demonstrates basic digital wallet operations such as user registration,
+login, adding money, sending money, transaction validation, transaction
+history, transaction summary and receipt download.
+
+The platform is intended for demonstration and educational purposes.
+It does not connect to real banks, payment gateways or financial services.
+
+
+2. OBJECTIVES
+
+1. Provide a simple digital wallet interface.
+2. Allow users to create and access wallet accounts.
+3. Allow users to perform simulated wallet transactions.
+4. Validate transactions before processing them.
+5. Display wallet balance and transaction information.
+6. Generate a downloadable transaction receipt.
+7. Provide an application suitable for demonstrating DevOps practices.
+
+
+3. TARGET USER
+
+The primary user is a registered wallet user who can manage a simulated
+wallet and perform transactions.
+
+
+4. FUNCTIONAL REQUIREMENTS
+
+FR01 – User Registration
+The system shall allow a new user to create an account using name, email,
+mobile number and password.
+
+FR02 – User Login
+The system shall allow registered users to log in using valid credentials.
+
+FR03 – Wallet Dashboard
+The system shall display the user's name, current wallet balance and
+transaction summary.
+
+FR04 – Add Money
+The system shall allow users to add a simulated amount to their wallet.
+
+FR05 – Send Money
+The system shall allow users to send a simulated amount to another valid
+recipient.
+
+FR06 – Transaction Validation
+The system shall validate required fields, transaction amount, recipient
+and available balance before processing a transaction.
+
+FR07 – Transaction History
+The system shall display previous wallet transactions.
+
+FR08 – Transaction Summary
+The system shall display total money added, money sent, money received and
+current balance.
+
+FR09 – Download Receipt
+The system shall allow users to download a receipt for a completed
+transaction.
+
+FR10 – Transaction Status
+The system shall display transaction status such as SUCCESS or FAILED.
+
+
+5. NON-FUNCTIONAL REQUIREMENTS
+
+NFR01 – Usability
+The interface should be simple and easy to understand.
+
+NFR02 – Performance
+Normal user operations should respond within a reasonable time on the
+local system.
+
+NFR03 – Security
+Passwords should not be displayed in plain text in the interface and
+database access should use controlled credentials.
+
+NFR04 – Reliability
+Invalid transactions should not modify the wallet balance.
+
+NFR05 – Maintainability
+The application should use a modular Java project structure.
+
+NFR06 – Portability
+The application should be deployable on a system with Java, Maven and
+Apache Tomcat.
+
+NFR07 – Testability
+Important user workflows should be testable using Selenium WebDriver.
+
+
+6. INPUTS
+
+1. User name
+2. Email
+3. Mobile number
+4. Password
+5. Recipient
+6. Transaction amount
+
+
+7. OUTPUTS
+
+1. Registration success/error message
+2. Login success/error message
+3. Wallet balance
+4. Transaction status
+5. Transaction history
+6. Transaction summary
+7. Downloadable transaction receipt
+
+
+8. BUSINESS RULES
+
+BR01: Transaction amount must be greater than zero.
+
+BR02: A send-money transaction cannot exceed the available wallet balance.
+
+BR03: Only valid registered users can log in.
+
+BR04: A transaction must have a valid recipient.
+
+BR05: Failed transactions must not change the wallet balance.
+
+BR06: Every successful transaction must have a unique transaction ID.
+
+BR07: Every transaction must store its date/time and status.
+
+
+9. MVP SCOPE
+
+The MVP includes:
+
+1. User registration
+2. User login
+3. Wallet dashboard
+4. Add money
+5. Send money
+6. Transaction validation
+7. Transaction history
+8. Transaction summary
+9. Downloadable transaction receipt
+
+
+10. OUT OF SCOPE
+
+1. Real bank integration
+2. Real payment gateway
+3. Real money transfer
+4. Credit/debit card processing
+5. UPI integration
+6. Mobile application
+7. Cryptocurrency transactions
+8. Real financial services
+
+
+11. TECHNOLOGY STACK
+
+Frontend:
+HTML5, CSS3, JSP
+
+Backend:
+Java Servlets
+
+Database:
+MySQL
+
+Database Connectivity:
+JDBC
+
+Build Tool:
+Apache Maven
+
+Application Server:
+Apache Tomcat
+
+Version Control:
+Git and GitHub
+
+Continuous Integration:
+Jenkins
+
+Automated Testing:
+Selenium WebDriver
+
+Containerization:
+Docker
+
+Configuration Management:
+Ansible
+
+
+12. SYSTEM CONSTRAINTS
+
+1. The application is a demonstration/simulation platform.
+2. No real financial transactions are performed.
+3. The application depends on Java, Maven, MySQL and Tomcat.
+4. The project is initially developed and tested locally.
+5. Deployment resources are limited to the available development machine.
+6. Internet access may be required for downloading dependencies and
+   connecting to GitHub/Docker Hub.
+
+
+13. SUCCESS CRITERIA
+
+The MVP will be considered successful when:
+
+1. A user can register successfully.
+2. A registered user can log in.
+3. Wallet balance is displayed correctly.
+4. User can add simulated money.
+5. User can send simulated money.
+6. Invalid transactions are rejected.
+7. Transaction history is displayed.
+8. Transaction summary is displayed.
+9. A transaction receipt can be downloaded.
+10. The application can be built using Maven.
+11. The application can run on Apache Tomcat.
+12. Critical workflows can be tested using Selenium.
+13. The application can later be built and deployed through Jenkins.

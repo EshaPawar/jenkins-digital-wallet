@@ -1,0 +1,75 @@
+TASK 3 – USE-CASE DIAGRAM
+DIGITAL WALLET DEMONSTRATION PLATFORM
+
+
+                         DIGITAL WALLET DEMONSTRATION PLATFORM
+                    ┌─────────────────────────────────────────────┐
+                    │                                             │
+                    │       ┌─────────────────────────┐           │
+                    │       │      Register Account   │           │
+                    │       └─────────────────────────┘           │
+                    │                    ▲                         │
+                    │                    │                         │
+                    │       ┌─────────────────────────┐           │
+                    │       │          Login          │           │
+                    │       └─────────────────────────┘           │
+                    │                    ▲                         │
+                    │                    │                         │
+                    │       ┌─────────────────────────┐           │
+                    │       │    View Dashboard      │           │
+                    │       └─────────────────────────┘           │
+                    │                    ▲                         │
+                    │                    │                         │
+                    │       ┌─────────────────────────┐           │
+                    │       │       Add Money         │           │
+                    │       └─────────────────────────┘           │
+                    │                    ▲                         │
+                    │                    │                         │
+                    │       ┌─────────────────────────┐           │
+                    │       │       Send Money        │           │
+                    │       └─────────────────────────┘           │
+                    │                    ▲                         │
+                    │                    │                         │
+                    │       ┌─────────────────────────┐           │
+                    │       │  Validate Transaction   │           │
+                    │       └─────────────────────────┘           │
+                    │                    ▲                         │
+                    │                    │                         │
+                    │       ┌─────────────────────────┐           │
+                    │       │  View Transaction       │           │
+                    │       │       History           │           │
+                    │       └─────────────────────────┘           │
+                    │                    ▲                         │
+                    │                    │                         │
+                    │       ┌─────────────────────────┐           │
+                    │       │   View Transaction      │           │
+                    │       │        Summary          │           │
+                    │       └─────────────────────────┘           │
+                    │                    ▲                         │
+                    │                    │                         │
+                    │       ┌─────────────────────────┐           │
+                    │       │   Download Transaction  │           │
+                    │       │         Receipt         │           │
+                    │       └─────────────────────────┘           │
+                    │                                             │
+                    └─────────────────────────────────────────────┘
+                              ▲
+                              │
+                         ┌───────────┐
+                         │   USER    │
+                         └───────────┘
+
+
+ACTOR:
+User
+
+USE CASES:
+1. Register Account
+2. Login
+3. View Dashboard
+4. Add Money
+5. Send Money
+6. Validate Transaction
+7. View Transaction History
+8. View Transaction Summary
+9. Download Transaction Receipt

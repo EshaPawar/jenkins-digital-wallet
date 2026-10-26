@@ -1,0 +1,80 @@
+TASK 3 – APPLICATION ARCHITECTURE
+DIGITAL WALLET DEMONSTRATION PLATFORM
+
+
+                         ┌─────────────────────┐
+                         │        USER         │
+                         └──────────┬──────────┘
+                                    │
+                                    │ HTTP Request
+                                    ▼
+                         ┌─────────────────────┐
+                         │       BROWSER       │
+                         │  HTML / CSS / JSP   │
+                         └──────────┬──────────┘
+                                    │
+                                    ▼
+                         ┌─────────────────────┐
+                         │    JAVA SERVLETS    │
+                         │    Controller Layer │
+                         └──────────┬──────────┘
+                                    │
+                                    ▼
+                         ┌─────────────────────┐
+                         │   SERVICE LAYER     │
+                         │ Business Logic and  │
+                         │ Transaction          │
+                         │ Validation           │
+                         └──────────┬──────────┘
+                                    │
+                                    ▼
+                         ┌─────────────────────┐
+                         │      JDBC LAYER     │
+                         │    Data Access      │
+                         └──────────┬──────────┘
+                                    │
+                                    │ SQL
+                                    ▼
+                         ┌─────────────────────┐
+                         │        MySQL        │
+                         │      Database       │
+                         └─────────────────────┘
+
+
+DEVOPS DEPLOYMENT FLOW
+
+        ┌─────────────┐
+        │    GitHub   │
+        └──────┬──────┘
+               │
+               ▼
+        ┌─────────────┐
+        │   Jenkins   │
+        └──────┬──────┘
+               │
+        ┌──────┴─────────┐
+        │                │
+        ▼                ▼
+   Maven Build      Selenium Tests
+        │                │
+        └───────┬────────┘
+                │
+              PASS
+                │
+                ▼
+        ┌─────────────┐
+        │     WAR     │
+        │   Package   │
+        └──────┬──────┘
+               │
+               ▼
+        ┌─────────────┐
+        │    Docker   │
+        │    Image    │
+        └──────┬──────┘
+               │
+               ▼
+        ┌─────────────┐
+        │    Tomcat   │
+        │   Container │
+        └─────────────┘
