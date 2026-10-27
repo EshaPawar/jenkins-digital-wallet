@@ -14,6 +14,7 @@ public class WalletServlet extends HttpServlet {
 
     private static final double INITIAL_BALANCE = 10000.00;
     private static final double REFRESH_CREDIT = 100.00;
+    private static final double MAX_ADD_AMOUNT = 50000.00;
 
     private String getCurrentTime() {
         return LocalDateTime.now()
@@ -114,7 +115,21 @@ public class WalletServlet extends HttpServlet {
                 double amount =
                         Double.parseDouble(amountParameter);
 
-                if (amount > 0) {
+                if (amount <= 0) {
+
+                    session.setAttribute(
+                            "message",
+                            "Please enter an amount greater than ₹0."
+                    );
+
+                } else if (amount > MAX_ADD_AMOUNT) {
+
+                    session.setAttribute(
+                            "message",
+                            "Maximum amount allowed in one transaction is ₹50,000."
+                    );
+
+                } else {
 
                     double balance =
                             (Double) session.getAttribute("balance");
@@ -139,13 +154,6 @@ public class WalletServlet extends HttpServlet {
                                     "₹%.2f added successfully to your wallet.",
                                     amount
                             )
-                    );
-
-                } else {
-
-                    session.setAttribute(
-                            "message",
-                            "Please enter an amount greater than ₹0."
                     );
                 }
 
