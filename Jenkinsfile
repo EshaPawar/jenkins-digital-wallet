@@ -10,6 +10,11 @@ pipeline {
         )
     }
 
+    environment {
+        JAVA_HOME = tool 'PyCharm-Java21'
+        PATH = "${JAVA_HOME}\\bin;${PATH}"
+    }
+
     stages {
 
         stage('Checkout') {
