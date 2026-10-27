@@ -11,176 +11,191 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class WalletServlet extends HttpServlet {
+
     private static final double INITIAL_BALANCE = 10000.00;
-private static final double REFRESH_CREDIT = 100.00;
+    private static final double REFRESH_CREDIT = 100.00;
 
-private String getCurrentTime() {
-    return LocalDateTime.now()
-            .format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss"));
-}
-
-@Override
-protected void doGet(HttpServletRequest request,
-                     HttpServletResponse response)
-        throws ServletException, IOException {
-
-    HttpSession session = request.getSession();
-
-    String start = request.getParameter("start");
-    String refresh = request.getParameter("refresh");
-    String action = request.getParameter("action");
-
-    /*
-     * OPEN WALLET
-     * start=true means this is a fresh wallet opening.
-     * Reset the wallet to its initial state.
-     */
-    if ("true".equals(start)) {
-
-        session.setAttribute("balance", INITIAL_BALANCE);
-        session.setAttribute("refreshCount", 0);
-        session.setAttribute("lastAddedAmount", 0.00);
-        session.setAttribute("message", "");
-        session.setAttribute("refreshedAt", getCurrentTime());
-        session.setAttribute("latestActivity",
-                "Wallet opened successfully. No refresh performed yet.");
+    private String getCurrentTime() {
+        return LocalDateTime.now()
+                .format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss"));
     }
 
-    /*
-     * If the wallet has never been initialized,
-     * initialize it with refresh count 0.
-     */
-    if (session.getAttribute("balance") == null) {
+    @Override
+    protected void doGet(HttpServletRequest request,
+                         HttpServletResponse response)
+            throws ServletException, IOException {
 
-        session.setAttribute("balance", INITIAL_BALANCE);
-        session.setAttribute("refreshCount", 0);
-        session.setAttribute("lastAddedAmount", 0.00);
-        session.setAttribute("message", "");
-        session.setAttribute("refreshedAt", getCurrentTime());
-        session.setAttribute("latestActivity",
-                "Wallet opened successfully. No refresh performed yet.");
-    }
+        HttpSession session = request.getSession();
 
-    /*
-     * REFRESH WALLET
-     * Every refresh:
-     * 1. Adds ₹100
-     * 2. Increases refresh count by 1
-     * 3. Updates refresh time
-     */
-    if ("true".equals(refresh)) {
+        String start = request.getParameter("start");
+        String refresh = request.getParameter("refresh");
+        String action = request.getParameter("action");
 
-        double balance = (Double) session.getAttribute("balance");
-        int refreshCount = (Integer) session.getAttribute("refreshCount");
+        /*
+         * OPEN WALLET
+         * start=true means this is a fresh wallet opening.
+         * Reset the wallet to its initial state.
+         */
+        if ("true".equals(start)) {
 
-        balance = balance + REFRESH_CREDIT;
-        refreshCount = refreshCount + 1;
+            session.setAttribute("balance", INITIAL_BALANCE);
+            session.setAttribute("refreshCount", 0);
+            session.setAttribute("lastAddedAmount", 0.00);
+            session.setAttribute("message", "");
+            session.setAttribute("refreshedAt", getCurrentTime());
+            session.setAttribute(
+                    "latestActivity",
+                    "Wallet opened successfully. No refresh performed yet."
+            );
+        }
 
-        session.setAttribute("balance", balance);
-        session.setAttribute("refreshCount", refreshCount);
-        session.setAttribute("lastAddedAmount", REFRESH_CREDIT);
-        session.setAttribute("refreshedAt", getCurrentTime());
+        /*
+         * If the wallet has never been initialized,
+         * initialize it with refresh count 0.
+         */
+        if (session.getAttribute("balance") == null) {
 
-        session.setAttribute(
-                "latestActivity",
-                "₹100.00 demo credit added during the latest refresh."
-        );
+            session.setAttribute("balance", INITIAL_BALANCE);
+            session.setAttribute("refreshCount", 0);
+            session.setAttribute("lastAddedAmount", 0.00);
+            session.setAttribute("message", "");
+            session.setAttribute("refreshedAt", getCurrentTime());
+            session.setAttribute(
+                    "latestActivity",
+                    "Wallet opened successfully. No refresh performed yet."
+            );
+        }
 
-        session.setAttribute(
-                "message",
-                "Wallet refreshed successfully. ₹100.00 has been added."
-        );
-    }
+        /*
+         * REFRESH WALLET
+         *
+         * Every refresh:
+         * 1. Adds ₹100
+         * 2. Increases refresh count by 1
+         * 3. Updates refresh time
+         */
+        if ("true".equals(refresh)) {
 
-    /*
-     * ADD MONEY
-     */
-    if ("add".equals(action)) {
+            double balance =
+                    (Double) session.getAttribute("balance");
 
-        String amountParameter = request.getParameter("amount");
+            int refreshCount =
+                    (Integer) session.getAttribute("refreshCount");
 
-        try {
+            balance = balance + REFRESH_CREDIT;
+            refreshCount = refreshCount + 1;
 
-            double amount = Double.parseDouble(amountParameter);
+            session.setAttribute("balance", balance);
+            session.setAttribute("refreshCount", refreshCount);
+            session.setAttribute("lastAddedAmount", REFRESH_CREDIT);
+            session.setAttribute("refreshedAt", getCurrentTime());
 
-            if (amount > 0) {
-
-                double balance =
-                        (Double) session.getAttribute("balance");
-
-                balance = balance + amount;
-
-                session.setAttribute("balance", balance);
-                session.setAttribute("lastAddedAmount", amount);
-                session.setAttribute("refreshedAt", getCurrentTime());
-
-                session.setAttribute(
-                        "latestActivity",
-                        String.format(
-                                "₹%.2f was manually added to the wallet.",
-                                amount
-                        )
-                );
-
-                session.setAttribute(
-                        "message",
-                        String.format(
-                                "₹%.2f added successfully to your wallet.",
-                                amount
-                        )
-                );
-
-            } else {
-
-                session.setAttribute(
-                        "message",
-                        "Please enter an amount greater than ₹0."
-                );
-            }
-
-        } catch (NumberFormatException e) {
+            session.setAttribute(
+                    "latestActivity",
+                    "₹100.00 demo credit added during the latest refresh."
+            );
 
             session.setAttribute(
                     "message",
-                    "Please enter a valid amount."
+                    "Wallet refreshed successfully. ₹100.00 has been added."
             );
         }
+
+        /*
+         * ADD MONEY
+         */
+        if ("add".equals(action)) {
+
+            String amountParameter =
+                    request.getParameter("amount");
+
+            try {
+
+                double amount =
+                        Double.parseDouble(amountParameter);
+
+                if (amount > 0) {
+
+                    double balance =
+                            (Double) session.getAttribute("balance");
+
+                    balance = balance + amount;
+
+                    session.setAttribute("balance", balance);
+                    session.setAttribute("lastAddedAmount", amount);
+                    session.setAttribute("refreshedAt", getCurrentTime());
+
+                    session.setAttribute(
+                            "latestActivity",
+                            String.format(
+                                    "₹%.2f was manually added to the wallet.",
+                                    amount
+                            )
+                    );
+
+                    session.setAttribute(
+                            "message",
+                            String.format(
+                                    "₹%.2f added successfully to your wallet.",
+                                    amount
+                            )
+                    );
+
+                } else {
+
+                    session.setAttribute(
+                            "message",
+                            "Please enter an amount greater than ₹0."
+                    );
+                }
+
+            } catch (NumberFormatException e) {
+
+                session.setAttribute(
+                        "message",
+                        "Please enter a valid amount."
+                );
+            }
+        }
+
+        /*
+         * Send session values to JSP.
+         */
+        request.setAttribute(
+                "balance",
+                session.getAttribute("balance")
+        );
+
+        request.setAttribute(
+                "refreshCount",
+                session.getAttribute("refreshCount")
+        );
+
+        request.setAttribute(
+                "lastAddedAmount",
+                session.getAttribute("lastAddedAmount")
+        );
+
+        request.setAttribute(
+                "refreshedAt",
+                session.getAttribute("refreshedAt")
+        );
+
+        request.setAttribute(
+                "message",
+                session.getAttribute("message")
+        );
+
+        request.setAttribute(
+                "latestActivity",
+                session.getAttribute("latestActivity")
+        );
+
+        /*
+         * Open dashboard.
+         */
+        request.getRequestDispatcher(
+                "/WEB-INF/views/dashboard.jsp"
+        ).forward(request, response);
     }
-
-    /*
-     * Send session values to JSP.
-     */
-    request.setAttribute(
-            "balance",
-            session.getAttribute("balance")
-    );
-
-    request.setAttribute(
-            "refreshCount",
-            session.getAttribute("refreshCount")
-    );
-
-    request.setAttribute(
-            "lastAddedAmount",
-            session.getAttribute("lastAddedAmount")
-    );
-
-    request.setAttribute(
-            "refreshedAt",
-            session.getAttribute("refreshedAt")
-    );
-
-    request.setAttribute(
-            "message",
-            session.getAttribute("message")
-    );
-
-    request.setAttribute(
-            "latestActivity",
-            session.getAttribute("latestActivity")
-    );
-
-    request.getRequestDispatcher(
-            "/WEB-INF/views/dashboard.jsp"
-    ).forward(request, response);
 }
