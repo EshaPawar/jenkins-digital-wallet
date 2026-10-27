@@ -1,3 +1,4 @@
+
 pipeline {
 
     agent any
@@ -38,7 +39,9 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                echo 'Deploy stage will deploy the WAR file to Tomcat.'
+                bat """
+                    copy /Y "target\\*.war" "%TOMCAT_WEBAPPS%\\digital-wallet.war"
+                """
             }
         }
     }
