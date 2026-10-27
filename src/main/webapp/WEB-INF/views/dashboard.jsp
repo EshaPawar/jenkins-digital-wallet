@@ -4,7 +4,6 @@
 <html>
 
 <head>
-
     <meta charset="UTF-8">
 
     <title>Digital Wallet Dashboard</title>
@@ -12,7 +11,6 @@
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet">
-
 </head>
 
 
@@ -54,12 +52,14 @@
 
             <div class="row">
 
+
                 <div class="col-md-6">
 
                     <p>
                         <strong>Account Holder:</strong><br>
                         Demo User
                     </p>
+
 
                     <p>
                         <strong>Account Number:</strong><br>
@@ -75,11 +75,13 @@
                         <strong>Wallet Balance:</strong>
                     </p>
 
+
                     <h2 class="text-success">
                         ₹${balance}
                     </h2>
 
                 </div>
+
 
             </div>
 
@@ -107,9 +109,29 @@
             </div>
 
 
+            <!-- Success / Error Message -->
+
+            <%
+                Object messageObj = request.getAttribute("message");
+
+                if (messageObj != null
+                        && !messageObj.toString().isEmpty()) {
+            %>
+
+                <div class="alert alert-info">
+
+                    ${message}
+
+                </div>
+
+            <%
+                }
+            %>
+
+
             <!-- Latest Wallet Activity -->
 
-            <div class="alert alert-info">
+            <div class="alert alert-primary">
 
                 <strong>Latest Wallet Activity</strong>
 
@@ -120,20 +142,7 @@
             </div>
 
 
-            <!-- Success / Error Message -->
-
-            <% if (message != null && !message.isEmpty()) { %>
-
-                <div class="alert alert-warning">
-
-                    ${message}
-
-                </div>
-
-            <% } %>
-
-
-            <!-- ADD MONEY -->
+            <!-- Add Money -->
 
             <div class="card bg-light border mb-4">
 
@@ -143,24 +152,25 @@
                         Add Money
                     </h5>
 
-                    <form
-                        method="get"
-                        action="${pageContext.request.contextPath}/wallet">
 
-                        <input
-                            type="hidden"
-                            name="action"
-                            value="add">
+                    <form method="get"
+                          action="${pageContext.request.contextPath}/wallet">
+
+
+                        <input type="hidden"
+                               name="action"
+                               value="add">
+
 
                         <div class="mb-3">
 
-                            <label
-                                for="amount"
-                                class="form-label">
+                            <label for="amount"
+                                   class="form-label">
 
                                 Enter Amount
 
                             </label>
+
 
                             <div class="input-group">
 
@@ -168,28 +178,34 @@
                                     ₹
                                 </span>
 
-                                <input
-                                    type="number"
-                                    class="form-control"
-                                    id="amount"
-                                    name="amount"
-                                    min="1"
-                                    step="0.01"
-                                    placeholder="Enter amount"
-                                    required>
+
+                                <input type="number"
+                                       class="form-control"
+                                       id="amount"
+                                       name="amount"
+                                       min="1"
+                                       max="50000"
+                                       step="0.01"
+                                       placeholder="Enter amount"
+                                       required>
 
                             </div>
+
+
+                            <small class="text-muted">
+                                Maximum amount allowed: ₹50,000
+                            </small>
 
                         </div>
 
 
-                        <button
-                            type="submit"
-                            class="btn btn-success w-100">
+                        <button type="submit"
+                                class="btn btn-success w-100">
 
                             + Add Money
 
                         </button>
+
 
                     </form>
 
@@ -200,17 +216,30 @@
 
             <!-- Last Added Amount -->
 
-            <% if (lastAddedAmount > 0) { %>
+            <%
+                Object lastAddedObj =
+                        request.getAttribute("lastAddedAmount");
 
-                <div class="alert alert-warning">
+                if (lastAddedObj != null) {
 
-                    <strong>Last Amount Added:</strong>
+                    double lastAdded =
+                            ((Number) lastAddedObj).doubleValue();
 
-                    ₹${lastAddedAmount}
+                    if (lastAdded > 0) {
+            %>
 
-                </div>
+                        <div class="alert alert-warning">
 
-            <% } %>
+                            <strong>Last Amount Added:</strong>
+
+                            ₹${lastAddedAmount}
+
+                        </div>
+
+            <%
+                    }
+                }
+            %>
 
 
             <!-- Buttons -->
@@ -220,9 +249,8 @@
 
                 <!-- Refresh -->
 
-                <a
-                    href="${pageContext.request.contextPath}/wallet?refresh=true"
-                    class="btn btn-primary">
+                <a href="${pageContext.request.contextPath}/wallet?refresh=true"
+                   class="btn btn-primary">
 
                     🔄 Refresh Wallet
 
@@ -231,13 +259,13 @@
 
                 <!-- Back -->
 
-                <a
-                    href="${pageContext.request.contextPath}/"
-                    class="btn btn-outline-secondary">
+                <a href="${pageContext.request.contextPath}/"
+                   class="btn btn-outline-secondary">
 
                     ← Back to Home
 
                 </a>
+
 
             </div>
 
