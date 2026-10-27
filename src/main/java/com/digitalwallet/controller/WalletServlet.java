@@ -523,7 +523,7 @@ public class WalletServlet extends HttpServlet {
                              */
                             session.setAttribute(
                                     "message",
-                                    "Amount can have a maximum of 2 decimal places."
+                                    "Please enter an amount with a maximum of 2 decimal places."
                             );
 
                         } else {
