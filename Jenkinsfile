@@ -1,4 +1,4 @@
-
+```groovy
 pipeline {
 
     agent any
@@ -40,7 +40,7 @@ pipeline {
         stage('Deploy') {
             steps {
                 bat """
-                    copy /Y "target\\*.war" "%TOMCAT_WEBAPPS%\\digital-wallet.war"
+                    copy /Y "target\\digital-wallet.war" "%TOMCAT_WEBAPPS%\\digital-wallet.war"
                 """
             }
         }
