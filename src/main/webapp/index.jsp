@@ -3,41 +3,120 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
+    <title>Digital Wallet - Register</title>
 
-    <title>Digital Wallet</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
 
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-        rel="stylesheet">
+        .container {
+            width: 400px;
+            background: white;
+            padding: 35px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #777;
+            margin-bottom: 25px;
+        }
+
+        input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 13px;
+            margin: 8px 0 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #5568d8;
+        }
+
+        .login {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .login a {
+            color: #667eea;
+            text-decoration: none;
+        }
+    </style>
 </head>
 
-<body class="bg-light">
+<body>
 
-<div class="container mt-5">
+<div class="container">
 
-    <div class="card shadow-sm mx-auto text-center"
-         style="max-width: 700px;">
+    <h1>Digital Wallet</h1>
 
-        <div class="card-body p-5">
+    <div class="subtitle">
+        Create your wallet account
+    </div>
 
-            <h1 class="mb-3">
-                Digital Wallet Demonstration Platform
-            </h1>
+    <form action="register" method="post">
 
-            <p class="text-muted mb-4">
-                Secure and simple digital wallet management
-            </p>
+        <label>Name</label>
+        <input type="text"
+               name="name"
+               placeholder="Enter your name"
+               required>
 
-            <a href="${pageContext.request.contextPath}/wallet?start=true"
-               class="btn btn-primary btn-lg">
+        <label>Email</label>
+        <input type="email"
+               name="email"
+               placeholder="Enter your email"
+               required>
 
-                Open Wallet
+        <label>Mobile</label>
+        <input type="tel"
+               name="mobile"
+               placeholder="Enter your mobile number"
+               required>
 
-            </a>
+        <label>Password</label>
+        <input type="password"
+               name="password"
+               placeholder="Create a password"
+               required>
 
-        </div>
+        <button type="submit">
+            Register
+        </button>
 
+    </form>
+
+    <div class="login">
+        Already have an account?
+        <a href="login.jsp">Sign In</a>
     </div>
 
 </div>

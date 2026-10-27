@@ -1,9 +1,13 @@
+jsp
 <%@ page contentType="text/html;charset=UTF-8" %>
+<%@ page import="java.util.List" %>
+<%@ page import="com.digitalwallet.dao.Transaction" %>
 
 <!DOCTYPE html>
 <html>
 
 <head>
+
     <meta charset="UTF-8">
 
     <title>Digital Wallet Dashboard</title>
@@ -11,6 +15,7 @@
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet">
+
 </head>
 
 
@@ -48,63 +53,78 @@
             </h3>
 
 
-            <!-- Account Information -->
+            <!-- Logged-in User Information -->
 
-            <div class="row">
+            <div class="card border-primary mb-4">
 
+                <div class="card-body">
 
-                <div class="col-md-6">
-
-                    <p>
-                        <strong>Account Holder:</strong><br>
-                        Demo User
-                    </p>
+                    <h5 class="text-primary mb-3">
+                        Account Information
+                    </h5>
 
 
-                    <p>
-                        <strong>Account Number:</strong><br>
-                        DW10001
-                    </p>
+                    <div class="row">
+
+                        <div class="col-md-6">
+
+                            <p>
+                                <strong>Name:</strong><br>
+                                ${accountHolder}
+                            </p>
+
+
+                            <p>
+                                <strong>Email:</strong><br>
+                                ${email}
+                            </p>
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <p>
+                                <strong>Mobile:</strong><br>
+                                ${mobile}
+                            </p>
+
+
+                            <p>
+                                <strong>Account ID:</strong><br>
+                                ${userId}
+                            </p>
+
+                        </div>
+
+                    </div>
 
                 </div>
-
-
-                <div class="col-md-6">
-
-                    <p>
-                        <strong>Wallet Balance:</strong>
-                    </p>
-
-
-                    <h2 class="text-success">
-                        ₹${balance}
-                    </h2>
-
-                </div>
-
 
             </div>
 
 
-            <hr>
+            <!-- Wallet Balance -->
+
+            <div class="card border-success mb-4">
+
+                <div class="card-body text-center">
+
+                    <h5 class="text-success">
+                        Current Wallet Balance
+                    </h5>
 
 
-            <!-- Wallet Status -->
+                    <h1 class="text-success">
+                        ₹${balance}
+                    </h1>
 
-            <div class="alert alert-success">
 
-                <strong>Wallet Status:</strong>
-                Active
+                    <p class="text-muted mb-0">
+                        Available wallet balance
+                    </p>
 
-                <br>
-
-                <strong>Last Refreshed:</strong>
-                ${refreshedAt}
-
-                <br>
-
-                <strong>Wallet Refresh Count:</strong>
-                ${refreshCount}
+                </div>
 
             </div>
 
@@ -112,34 +132,24 @@
             <!-- Success / Error Message -->
 
             <%
-                Object messageObj = request.getAttribute("message");
+                Object messageObj =
+                        request.getAttribute("message");
 
-                if (messageObj != null
-                        && !messageObj.toString().isEmpty()) {
+                if (messageObj != null &&
+                    !messageObj.toString().isEmpty()) {
             %>
 
                 <div class="alert alert-info">
 
-                    ${message}
+                    <strong>
+                        ${message}
+                    </strong>
 
                 </div>
 
             <%
                 }
             %>
-
-
-            <!-- Latest Wallet Activity -->
-
-            <div class="alert alert-primary">
-
-                <strong>Latest Wallet Activity</strong>
-
-                <br>
-
-                ${latestActivity}
-
-            </div>
 
 
             <!-- Add Money -->
@@ -153,7 +163,7 @@
                     </h5>
 
 
-                    <form method="get"
+                    <form method="post"
                           action="${pageContext.request.contextPath}/wallet">
 
 
@@ -193,7 +203,9 @@
 
 
                             <small class="text-muted">
+
                                 Maximum amount allowed: ₹50,000
+
                             </small>
 
                         </div>
@@ -206,6 +218,47 @@
 
                         </button>
 
+
+                    </form>
+
+                </div>
+
+            </div>
+
+
+            <!-- Refresh Wallet -->
+
+            <div class="card border-primary mb-4">
+
+                <div class="card-body text-center">
+
+                    <h5 class="text-primary">
+                        Refresh Wallet
+                    </h5>
+
+
+                    <p class="text-muted">
+
+                        Refresh your wallet and receive
+                        a ₹100 demo credit.
+
+                    </p>
+
+
+                    <form method="post"
+                          action="${pageContext.request.contextPath}/wallet">
+
+                        <input type="hidden"
+                               name="action"
+                               value="refresh">
+
+
+                        <button type="submit"
+                                class="btn btn-primary">
+
+                            🔄 Refresh Wallet
+
+                        </button>
 
                     </form>
 
@@ -228,13 +281,15 @@
                     if (lastAdded > 0) {
             %>
 
-                        <div class="alert alert-warning">
+                <div class="alert alert-warning">
 
-                            <strong>Last Amount Added:</strong>
+                    <strong>
+                        Last Amount Added:
+                    </strong>
 
-                            ₹${lastAddedAmount}
+                    ₹${lastAddedAmount}
 
-                        </div>
+                </div>
 
             <%
                     }
@@ -242,22 +297,180 @@
             %>
 
 
-            <!-- Buttons -->
+            <!-- Latest Wallet Activity -->
+
+            <div class="alert alert-primary">
+
+                <strong>
+                    Latest Wallet Activity
+                </strong>
+
+                <br>
+
+                ${latestActivity}
+
+            </div>
+
+
+            <!-- Transaction History -->
+
+            <div class="card border mb-4">
+
+                <div class="card-body">
+
+                    <h5 class="mb-3">
+                        Transaction History
+                    </h5>
+
+
+                    <%
+
+                        Object transactionsObj =
+                                request.getAttribute("transactions");
+
+                        if (transactionsObj != null) {
+
+                            List<Transaction> transactions =
+                                    (List<Transaction>) transactionsObj;
+
+
+                            if (!transactions.isEmpty()) {
+
+                    %>
+
+                        <div class="list-group">
+
+                            <%
+
+                                for (Transaction transaction :
+                                        transactions) {
+
+                            %>
+
+                                <div class="list-group-item">
+
+                                    <div class="d-flex justify-content-between">
+
+                                        <strong>
+                                            <%= transaction.getType() %>
+                                        </strong>
+
+
+                                        <span class="text-success">
+
+                                            ₹<%= String.format(
+                                                    "%.2f",
+                                                    transaction.getAmount()
+                                               ) %>
+
+                                        </span>
+
+                                    </div>
+
+
+                                    <small class="text-muted">
+
+                                        Recipient:
+                                        <%= transaction.getRecipient() %>
+
+                                        <br>
+
+                                        Status:
+                                        <%= transaction.getStatus() %>
+
+                                        <br>
+
+                                        Date:
+                                        <%= transaction.getTransactionDate() %>
+
+                                    </small>
+
+                                </div>
+
+
+                            <%
+
+                                }
+
+                            %>
+
+                        </div>
+
+
+                    <%
+
+                            } else {
+
+                    %>
+
+                        <p class="text-muted mb-0">
+                            No transactions yet.
+                        </p>
+
+
+                    <%
+
+                            }
+
+                        } else {
+
+                    %>
+
+                        <p class="text-muted mb-0">
+                            No transactions yet.
+                        </p>
+
+
+                    <%
+
+                        }
+
+                    %>
+
+
+                </div>
+
+            </div>
+
+
+            <!-- Wallet Status / Receipt -->
+
+            <div class="card border-success mb-4">
+
+                <div class="card-body text-center">
+
+                    <h5 class="text-success mb-2">
+
+                        Wallet Status / Receipt
+
+                    </h5>
+
+
+                    <p class="text-muted mb-3">
+
+                        Download your current wallet status,
+                        account details, balance and
+                        transaction history.
+
+                    </p>
+
+
+                    <a href="${pageContext.request.contextPath}/wallet?action=downloadReceipt"
+                       class="btn btn-success btn-lg">
+
+                        Download Wallet Receipt
+
+                    </a>
+
+                </div>
+
+            </div>
+
+
+            <!-- Bottom Buttons -->
 
             <div class="d-grid gap-2">
 
-
-                <!-- Refresh -->
-
-                <a href="${pageContext.request.contextPath}/wallet?refresh=true"
-                   class="btn btn-primary">
-
-                    🔄 Refresh Wallet
-
-                </a>
-
-
-                <!-- Back -->
 
                 <a href="${pageContext.request.contextPath}/"
                    class="btn btn-outline-secondary">
