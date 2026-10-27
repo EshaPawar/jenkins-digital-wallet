@@ -1,4 +1,3 @@
-
 package com.digitalwallet.controller;
 
 import com.digitalwallet.dao.Transaction;
@@ -509,6 +508,22 @@ public class WalletServlet extends HttpServlet {
                             session.setAttribute(
                                     "message",
                                     "Maximum amount allowed in one transaction is ₹50,000."
+                            );
+
+                        } else if (
+                                Math.abs(
+                                        amount * 100
+                                                - Math.round(amount * 100)
+                                ) > 0.000001
+                        ) {
+
+                            /*
+                             * Amount validation:
+                             * Maximum 2 decimal places.
+                             */
+                            session.setAttribute(
+                                    "message",
+                                    "Amount can have a maximum of 2 decimal places."
                             );
 
                         } else {
