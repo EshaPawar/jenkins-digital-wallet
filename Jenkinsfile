@@ -12,7 +12,8 @@ pipeline {
 
     environment {
         JAVA_HOME = tool 'PyCharm-Java21'
-        PATH = "${JAVA_HOME}\\bin;${PATH}"
+        MAVEN_HOME = 'D:\\Maven\\apache-maven-3.10.0'
+        PATH = "${JAVA_HOME}\\bin;${MAVEN_HOME}\\bin;${PATH}"
     }
 
     stages {
