@@ -90,38 +90,42 @@ pipeline {
                     powershell '''
                         $ErrorActionPreference = 'Stop'
 
-                        if ([string]::IsNullOrWhiteSpace($env:DOCKERHUB_USER)) {
+                        $user = $env:DOCKERHUB_USER.Trim()
+                        $token = $env:DOCKERHUB_TOKEN.Trim()
+
+                        if ([string]::IsNullOrWhiteSpace($user)) {
                             throw 'Docker Hub username is missing.'
                         }
 
-                        if ([string]::IsNullOrWhiteSpace($env:DOCKERHUB_TOKEN)) {
-                            throw 'Docker Hub token was not supplied by Jenkins.'
+                        if ([string]::IsNullOrWhiteSpace($token)) {
+                            throw 'Docker Hub token is missing.'
                         }
 
-                        # Use an isolated Docker configuration for this build.
-                        $env:DOCKER_CONFIG = Join-Path `
+                        Write-Host "Docker Hub username: $user"
+                        Write-Host 'Docker Hub token received. Value hidden.'
+
+                        $dockerConfig = Join-Path `
                             $env:TEMP `
                             "jenkins-docker-config-$env:BUILD_NUMBER"
 
                         New-Item `
                             -ItemType Directory `
-                            -Path $env:DOCKER_CONFIG `
+                            -Path $dockerConfig `
                             -Force | Out-Null
 
-                        Write-Host 'Attempting Docker Hub login...'
-
-                        $env:DOCKERHUB_TOKEN |
-                            docker login `
-                                --username $env:DOCKERHUB_USER `
-                                --password-stdin
-
-                        if ($LASTEXITCODE -ne 0) {
-                            throw 'Docker Hub login failed. Check the Docker login output above.'
-                        }
-
-                        Write-Host 'Docker Hub login succeeded.'
+                        $env:DOCKER_CONFIG = $dockerConfig
 
                         try {
+                            $token | docker login `
+                                --username $user `
+                                --password-stdin
+
+                            if ($LASTEXITCODE -ne 0) {
+                                throw 'Docker Hub login failed. Check the Jenkins credential and Docker login output.'
+                            }
+
+                            Write-Host 'Docker Hub login succeeded.'
+
                             docker push "${env:IMAGE_NAME}:${env:IMAGE_TAG}"
 
                             if ($LASTEXITCODE -ne 0) {
@@ -139,14 +143,9 @@ pipeline {
                         finally {
                             docker logout
 
-                            if ($LASTEXITCODE -ne 0) {
-                                Write-Warning 'Docker logout did not complete successfully.'
-                            }
-
-                            # Remove the temporary Docker configuration.
-                            if (Test-Path $env:DOCKER_CONFIG) {
+                            if (Test-Path $dockerConfig) {
                                 Remove-Item `
-                                    -Path $env:DOCKER_CONFIG `
+                                    -Path $dockerConfig `
                                     -Recurse `
                                     -Force `
                                     -ErrorAction SilentlyContinue
