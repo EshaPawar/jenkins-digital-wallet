@@ -1,3 +1,4 @@
+
 package com.digitalwallet.dao;
 
 import java.sql.*;
@@ -7,7 +8,7 @@ import java.util.List;
 public class WalletDAO {
 
     private static final String URL =
-            "jdbc:mysql://localhost:3306/digital_wallet?useSSL=false&serverTimezone=Asia/Kolkata";
+            "jdbc:mysql://host.docker.internal:3306/digital_wallet?useSSL=false&serverTimezone=Asia/Kolkata";
 
     private static final String USER = "root";
     private static final String PASSWORD = "";

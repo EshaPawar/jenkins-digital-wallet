@@ -1,46 +1,167 @@
 
 pipeline {
-
     agent any
-
-    parameters {
-        string(
-            name: 'TOMCAT_WEBAPPS',
-            defaultValue: 'D:\\Tomcat\\apache-tomcat-10.1.61\\webapps',
-            description: 'Tomcat webapps directory for deployment'
-        )
-    }
 
     environment {
         JAVA_HOME = tool 'PyCharm-Java21'
         MAVEN_HOME = 'D:\\Maven\\apache-maven-3.10.0'
         PATH = "${JAVA_HOME}\\bin;${MAVEN_HOME}\\bin;${PATH}"
+
+        IMAGE_NAME = 'divyapawar110806/digital-wallet'
+        IMAGE_TAG = "${BUILD_NUMBER}"
+        CONTAINER_NAME = 'digital-wallet-container'
     }
 
     stages {
-
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Build') {
+        stage('Build WAR') {
             steps {
-                bat 'mvn clean'
+                bat 'mvn clean package -DskipTests'
             }
         }
 
-        stage('Package') {
+        stage('Build Docker Image') {
             steps {
-                bat 'mvn package -DskipTests'
+                bat 'docker build -t %IMAGE_NAME%:%IMAGE_TAG% .'
+                bat 'docker tag %IMAGE_NAME%:%IMAGE_TAG% %IMAGE_NAME%:latest'
+                bat 'docker image inspect %IMAGE_NAME%:%IMAGE_TAG%'
             }
         }
 
-        stage('Deploy') {
+        stage('Smoke Test Image') {
             steps {
-                bat """
-                    copy /Y "target\\digital-wallet.war" "%TOMCAT_WEBAPPS%\\digital-wallet.war"
+                script {
+                    def candidate =
+                        "digital-wallet-candidate-${env.BUILD_NUMBER}"
+
+                    try {
+                        bat "docker run -d --name ${candidate} -p 8082:8080 ${env.IMAGE_NAME}:${env.IMAGE_TAG}"
+
+                        powershell """
+                            \$ErrorActionPreference = 'Stop'
+                            \$ok = \$false
+
+                            for (\$i = 0; \$i -lt 30; \$i++) {
+                                try {
+                                    \$response = Invoke-WebRequest `
+                                        -Uri 'http://localhost:8082/digital-wallet/' `
+                                        -TimeoutSec 3 `
+                                        -UseBasicParsing
+
+                                    if (\$response.StatusCode -eq 200) {
+                                        \$ok = \$true
+                                        break
+                                    }
+                                } catch {
+                                    Start-Sleep -Seconds 2
+                                }
+                            }
+
+                            if (-not \$ok) {
+                                docker logs ${candidate}
+                                throw 'Docker image smoke test failed.'
+                            }
+
+                            Write-Host 'Smoke test passed: HTTP 200'
+                        """
+                    } finally {
+                        bat(
+                            script: "docker rm -f ${candidate} 2>NUL",
+                            returnStatus: true
+                        )
+                    }
+                }
+            }
+        }
+
+        stage('Publish to Docker Hub') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKERHUB_USER',
+                        passwordVariable: 'DOCKERHUB_TOKEN'
+                    )
+                ]) {
+                    powershell """
+                        \$ErrorActionPreference = 'Stop'
+
+                        try {
+                            \$env:DOCKERHUB_TOKEN |
+                                docker login -u \$env:DOCKERHUB_USER --password-stdin
+
+                            if (\$LASTEXITCODE -ne 0) {
+                                throw 'Docker Hub login failed.'
+                            }
+
+                            docker push "${env.IMAGE_NAME}:${env.IMAGE_TAG}"
+                            if (\$LASTEXITCODE -ne 0) {
+                                throw 'Versioned image push failed.'
+                            }
+
+                            docker push "${env.IMAGE_NAME}:latest"
+                            if (\$LASTEXITCODE -ne 0) {
+                                throw 'Latest image push failed.'
+                            }
+                        } finally {
+                            docker logout
+                        }
+                    """
+                }
+            }
+        }
+
+        stage('Deploy Container') {
+            steps {
+                powershell """
+                    docker rm -f "${env.CONTAINER_NAME}" 2>\$null
+                    Write-Host 'Starting fresh application container.'
+
+                    docker run -d `
+                        --name "${env.CONTAINER_NAME}" `
+                        -p 8081:8080 `
+                        "${env.IMAGE_NAME}:${env.IMAGE_TAG}"
+
+                    if (\$LASTEXITCODE -ne 0) {
+                        exit 1
+                    }
+                """
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                powershell """
+                    \$ok = \$false
+
+                    for (\$i = 0; \$i -lt 30; \$i++) {
+                        try {
+                            \$response = Invoke-WebRequest `
+                                -Uri 'http://localhost:8081/digital-wallet/' `
+                                -TimeoutSec 3 `
+                                -UseBasicParsing
+
+                            if (\$response.StatusCode -eq 200) {
+                                \$ok = \$true
+                                break
+                            }
+                        } catch {
+                            Start-Sleep -Seconds 2
+                        }
+                    }
+
+                    if (-not \$ok) {
+                        docker logs "${env.CONTAINER_NAME}"
+                        throw 'Deployment verification failed.'
+                    }
+
+                    docker ps --filter "name=${env.CONTAINER_NAME}"
+                    Write-Host 'Deployment passed: HTTP 200'
                 """
             }
         }
@@ -48,11 +169,10 @@ pipeline {
 
     post {
         success {
-            echo 'Digital Wallet pipeline completed successfully.'
+            echo 'Digital Wallet image published and container deployed successfully.'
         }
-
         failure {
-            echo 'Digital Wallet pipeline failed.'
+            echo 'Pipeline failed. Review the failed stage logs.'
         }
     }
 }
