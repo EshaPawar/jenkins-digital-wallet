@@ -91,7 +91,7 @@ pipeline {
                         $ErrorActionPreference = 'Stop'
 
                         $user = $env:DOCKERHUB_USER.Trim()
-                        $token = $env:DOCKERHUB_TOKEN.Trim()
+                        $token = $env:DOCKERHUB_TOKEN
 
                         if ([string]::IsNullOrWhiteSpace($user)) {
                             throw 'Docker Hub username is missing.'
@@ -101,41 +101,60 @@ pipeline {
                             throw 'Docker Hub token is missing.'
                         }
 
-                        Write-Host "Docker Hub username: $user"
-                        Write-Host 'Docker Hub token received. Value hidden.'
-
-                        $dockerConfig = Join-Path `
-                            $env:TEMP `
+                        $dockerConfig = Join-Path $env:TEMP `
                             "jenkins-docker-config-$env:BUILD_NUMBER"
 
-                        New-Item `
-                            -ItemType Directory `
-                            -Path $dockerConfig `
-                            -Force | Out-Null
+                        New-Item -ItemType Directory `
+                            -Path $dockerConfig -Force | Out-Null
 
+                        $previousDockerConfig = $env:DOCKER_CONFIG
                         $env:DOCKER_CONFIG = $dockerConfig
 
                         try {
-                            Write-Host 'Attempting Docker Hub login...'
+                            Write-Host 'Starting Docker Hub authentication.'
 
-                            $token | docker login `
-                                --username $user `
-                                --password-stdin
+                            $dockerCommand = (Get-Command docker -ErrorAction Stop).Source
 
-                            if ($LASTEXITCODE -ne 0) {
-                                throw 'Docker Hub login failed. Check the Jenkins credential and Docker login output.'
+                            $psi = New-Object System.Diagnostics.ProcessStartInfo
+                            $psi.FileName = $dockerCommand
+                            $psi.Arguments = "login --username `"$user`" --password-stdin"
+                            $psi.UseShellExecute = $false
+                            $psi.CreateNoWindow = $true
+                            $psi.RedirectStandardInput = $true
+                            $psi.RedirectStandardOutput = $true
+                            $psi.RedirectStandardError = $true
+
+                            $process = New-Object System.Diagnostics.Process
+                            $process.StartInfo = $psi
+
+                            $null = $process.Start()
+
+                            $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+                            $stderrTask = $process.StandardError.ReadToEndAsync()
+
+                            # Do not trim the token; pass its stored value as supplied.
+                            $process.StandardInput.Write($token)
+                            $process.StandardInput.WriteLine()
+                            $process.StandardInput.Close()
+
+                            $process.WaitForExit()
+
+                            $loginOutput = $stdoutTask.Result
+                            $loginError = $stderrTask.Result
+
+                            if ($process.ExitCode -ne 0) {
+                                Write-Host 'Docker Hub rejected the credentials.'
+                                throw "Docker Hub login failed with exit code $($process.ExitCode). Verify the Jenkins credential ID, username, and token permissions."
                             }
 
-                            Write-Host 'Docker Hub login succeeded.'
+                            Write-Host 'Docker Hub authentication succeeded.'
 
                             docker push "${env:IMAGE_NAME}:${env:IMAGE_TAG}"
-
                             if ($LASTEXITCODE -ne 0) {
                                 throw 'Versioned image push failed.'
                             }
 
                             docker push "${env:IMAGE_NAME}:latest"
-
                             if ($LASTEXITCODE -ne 0) {
                                 throw 'Latest image push failed.'
                             }
@@ -143,14 +162,18 @@ pipeline {
                             Write-Host 'Both image tags were pushed successfully.'
                         }
                         finally {
-                            docker logout
+                            docker logout 2>$null | Out-Null
 
                             if (Test-Path $dockerConfig) {
-                                Remove-Item `
-                                    -Path $dockerConfig `
-                                    -Recurse `
-                                    -Force `
+                                Remove-Item -Path $dockerConfig `
+                                    -Recurse -Force -ErrorAction SilentlyContinue
+                            }
+
+                            if ($null -eq $previousDockerConfig) {
+                                Remove-Item Env:DOCKER_CONFIG `
                                     -ErrorAction SilentlyContinue
+                            } else {
+                                $env:DOCKER_CONFIG = $previousDockerConfig
                             }
                         }
                     '''
