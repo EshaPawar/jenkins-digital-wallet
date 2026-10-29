@@ -91,7 +91,7 @@ pipeline {
                     powershell '''
                         $ErrorActionPreference = 'Stop'
 
-                      $dockerExe = 'C:/Program Files/Docker/Docker/resources/bin/docker.exe'
+                        $dockerExe = 'C:/Program Files/Docker/Docker/resources/bin/docker.exe'
 
                         $user = $env:DOCKERHUB_USER
                         $token = $env:DOCKERHUB_TOKEN
@@ -109,6 +109,7 @@ pipeline {
                         }
 
                         $user = $user.Trim()
+                        $token = $token.Trim()
 
                         $versionedImage = "$($env:IMAGE_NAME):$($env:IMAGE_TAG)"
                         $latestImage = "$($env:IMAGE_NAME):latest"
@@ -150,23 +151,46 @@ pipeline {
 
                             Write-Host 'Attempting Docker Hub login...'
 
-                            # Use the explicit executable and pass the token
-                            # through standard input. Never print the token.
-                            $loginOutput = @(
-                                $token | & $dockerExe `
-                                    --context default login `
-                                    --username $user `
-                                    --password-stdin 2>&1
-                            )
+                            # Start Docker directly and pass the token through stdin.
+                            # The token is never added to command-line arguments or logs.
+                            $psi = New-Object System.Diagnostics.ProcessStartInfo
+                            $psi.FileName = $dockerExe
+                            $psi.Arguments = '--context default login --username "' + $user + '" --password-stdin'
+                            $psi.UseShellExecute = $false
+                            $psi.RedirectStandardInput = $true
+                            $psi.RedirectStandardOutput = $true
+                            $psi.RedirectStandardError = $true
+                            $psi.CreateNoWindow = $true
 
-                            $loginExitCode = $LASTEXITCODE
+                            $process = New-Object System.Diagnostics.Process
+                            $process.StartInfo = $psi
 
-                            foreach ($line in $loginOutput) {
-                                Write-Host "$line"
+                            [void]$process.Start()
+
+                            $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+                            $stderrTask = $process.StandardError.ReadToEndAsync()
+
+                            $process.StandardInput.WriteLine($token)
+                            $process.StandardInput.Close()
+
+                            $process.WaitForExit()
+
+                            $loginOutput = $stdoutTask.Result
+                            $loginError = $stderrTask.Result
+                            $loginExitCode = $process.ExitCode
+
+                            if (-not [string]::IsNullOrWhiteSpace($loginOutput)) {
+                                Write-Host $loginOutput
                             }
 
+                            if (-not [string]::IsNullOrWhiteSpace($loginError)) {
+                                Write-Host $loginError
+                            }
+
+                            $process.Dispose()
+
                             if ($loginExitCode -ne 0) {
-                                throw "Docker Hub login failed with exit code $loginExitCode. Check the Jenkins credential ID and Docker response above."
+                                throw "Docker Hub login failed with exit code $loginExitCode."
                             }
 
                             $loginSucceeded = $true
