@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -36,8 +35,7 @@ pipeline {
         stage('Smoke Test Image') {
             steps {
                 script {
-                    def candidate =
-                        "digital-wallet-candidate-${env.BUILD_NUMBER}"
+                    def candidate = "digital-wallet-candidate-${env.BUILD_NUMBER}"
 
                     try {
                         bat "docker run -d --name ${candidate} -p 8082:8080 ${env.IMAGE_NAME}:${env.IMAGE_TAG}"
@@ -102,10 +100,8 @@ pipeline {
                         Write-Host 'Docker Hub username is available.'
                         Write-Host 'Docker Hub token is available (value hidden).'
 
-                        # Start Docker as a separate process and pass the
-                        # token directly through redirected standard input.
                         $startInfo = New-Object System.Diagnostics.ProcessStartInfo
-                        $startInfo.FileName = 'docker.exe'
+                        $startInfo.FileName = (Get-Command docker.exe -ErrorAction Stop).Source
                         $startInfo.Arguments = "login --username `"$env:DOCKERHUB_USER`" --password-stdin"
                         $startInfo.UseShellExecute = $false
                         $startInfo.CreateNoWindow = $true
@@ -122,6 +118,7 @@ pipeline {
                             $stdoutTask = $process.StandardOutput.ReadToEndAsync()
                             $stderrTask = $process.StandardError.ReadToEndAsync()
 
+                            # Send the credential only through stdin.
                             $process.StandardInput.WriteLine($env:DOCKERHUB_TOKEN)
                             $process.StandardInput.Close()
 
@@ -135,10 +132,9 @@ pipeline {
                             }
 
                             if ($process.ExitCode -ne 0) {
-                                if ($stderr) {
-                                    Write-Host $stderr.Trim()
-                                }
-                                throw 'Docker Hub login failed. Token value was not displayed.'
+                                # Do not print stderr because it may contain
+                                # details that should not appear in build logs.
+                                throw "Docker Hub login failed (exit code $($process.ExitCode)). Check the credential ID, username, and token type."
                             }
 
                             Write-Host 'Docker Hub login succeeded.'
@@ -167,6 +163,9 @@ pipeline {
                         Write-Host 'Both image tags were pushed successfully.'
 
                         docker logout
+                        if ($LASTEXITCODE -ne 0) {
+                            Write-Warning 'Docker logout did not complete successfully.'
+                        }
                     '''
                 }
             }
