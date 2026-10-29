@@ -91,6 +91,8 @@ pipeline {
                     powershell '''
                         $ErrorActionPreference = 'Stop'
 
+                        $dockerExe = 'C:\Program Files\Docker\Docker\resources\bin\docker.exe'
+
                         $user = $env:DOCKERHUB_USER
                         $token = $env:DOCKERHUB_TOKEN
 
@@ -102,6 +104,10 @@ pipeline {
                             throw 'Docker Hub token is missing.'
                         }
 
+                        if (-not (Test-Path $dockerExe)) {
+                            throw "Docker executable not found: $dockerExe"
+                        }
+
                         $user = $user.Trim()
 
                         $versionedImage = "$($env:IMAGE_NAME):$($env:IMAGE_TAG)"
@@ -111,23 +117,32 @@ pipeline {
                             "jenkins-docker-config-$env:BUILD_NUMBER"
 
                         $previousDockerConfig = $env:DOCKER_CONFIG
+                        $previousDockerContext = $env:DOCKER_CONTEXT
                         $loginSucceeded = $false
 
                         New-Item -ItemType Directory `
                             -Path $dockerConfig -Force | Out-Null
 
-                        $env:DOCKER_CONFIG = $dockerConfig
-
                         try {
+                            $env:DOCKER_CONFIG = $dockerConfig
+                            $env:DOCKER_CONTEXT = 'default'
+
                             Write-Host 'Checking Docker CLI...'
-                            docker --version
+                            & $dockerExe --version
 
                             if ($LASTEXITCODE -ne 0) {
                                 throw 'Docker CLI is unavailable.'
                             }
 
+                            Write-Host 'Checking Docker engine...'
+                            & $dockerExe --context default version --format '{{.Server.Version}}'
+
+                            if ($LASTEXITCODE -ne 0) {
+                                throw 'Jenkins cannot access the Docker engine.'
+                            }
+
                             Write-Host "Checking local image: $versionedImage"
-                            docker image inspect $versionedImage
+                            & $dockerExe --context default image inspect $versionedImage
 
                             if ($LASTEXITCODE -ne 0) {
                                 throw "Local image not found: $versionedImage"
@@ -135,10 +150,11 @@ pipeline {
 
                             Write-Host 'Attempting Docker Hub login...'
 
-                            # Pass the token through standard input.
-                            # Never print the token or include it in an error.
+                            # Use the explicit executable and pass the token
+                            # through standard input. Never print the token.
                             $loginOutput = @(
-                                $token | docker login `
+                                $token | & $dockerExe `
+                                    --context default login `
                                     --username $user `
                                     --password-stdin 2>&1
                             )
@@ -150,24 +166,24 @@ pipeline {
                             }
 
                             if ($loginExitCode -ne 0) {
-                                throw "Docker Hub login failed with exit code $loginExitCode. Review the Docker response above and verify the Jenkins credential ID, username, and token permissions."
+                                throw "Docker Hub login failed with exit code $loginExitCode. Check the Jenkins credential ID and Docker response above."
                             }
 
                             $loginSucceeded = $true
                             Write-Host 'Docker Hub login successful.'
 
                             Write-Host "Pushing $versionedImage..."
-                            docker push $versionedImage
+                            & $dockerExe --context default push $versionedImage
 
                             if ($LASTEXITCODE -ne 0) {
-                                throw 'Versioned image push failed.'
+                                throw "Failed to push $versionedImage"
                             }
 
                             Write-Host "Pushing $latestImage..."
-                            docker push $latestImage
+                            & $dockerExe --context default push $latestImage
 
                             if ($LASTEXITCODE -ne 0) {
-                                throw 'Latest image push failed.'
+                                throw "Failed to push $latestImage"
                             }
 
                             Write-Host 'SUCCESS: Both image tags were published.'
@@ -175,7 +191,7 @@ pipeline {
                         }
                         finally {
                             if ($loginSucceeded) {
-                                docker logout 2>$null | Out-Null
+                                & $dockerExe --context default logout 2>$null | Out-Null
                             }
 
                             if (Test-Path $dockerConfig) {
@@ -189,6 +205,13 @@ pipeline {
                                     -ErrorAction SilentlyContinue
                             } else {
                                 $env:DOCKER_CONFIG = $previousDockerConfig
+                            }
+
+                            if ($null -eq $previousDockerContext) {
+                                Remove-Item Env:DOCKER_CONTEXT `
+                                    -ErrorAction SilentlyContinue
+                            } else {
+                                $env:DOCKER_CONTEXT = $previousDockerContext
                             }
                         }
                     '''
