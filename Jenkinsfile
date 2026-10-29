@@ -91,7 +91,7 @@ pipeline {
                     powershell '''
                         $ErrorActionPreference = 'Stop'
 
-                        $dockerExe = 'C:\Program Files\Docker\Docker\resources\bin\docker.exe'
+                      $dockerExe = 'C:/Program Files/Docker/Docker/resources/bin/docker.exe'
 
                         $user = $env:DOCKERHUB_USER
                         $token = $env:DOCKERHUB_TOKEN
