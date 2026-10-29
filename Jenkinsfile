@@ -1,4 +1,4 @@
-
+```groovy
 pipeline {
     agent any
 
@@ -102,218 +102,69 @@ pipeline {
                         Write-Host 'Docker Hub username is available.'
                         Write-Host 'Docker Hub token is available (value hidden).'
 
-                        $env:DOCKERHUB_TOKEN |
-                            docker login --username $env:DOCKERHUB_USER --password-stdin
+                        # Start Docker as a separate process and pass the
+                        # token directly through redirected standard input.
+                        $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+                        $startInfo.FileName = 'docker.exe'
+                        $startInfo.Arguments = "login --username `"$env:DOCKERHUB_USER`" --password-stdin"
+                        $startInfo.UseShellExecute = $false
+                        $startInfo.CreateNoWindow = $true
+                        $startInfo.RedirectStandardInput = $true
+                        $startInfo.RedirectStandardOutput = $true
+                        $startInfo.RedirectStandardError = $true
 
-                        if ($LASTEXITCODE -ne 0) {
-                            throw 'Docker Hub login failed. Check the saved Jenkins credential.'
-                        }
+                        $process = New-Object System.Diagnostics.Process
+                        $process.StartInfo = $startInfo
 
-                        docker push "${env:IMAGE_NAME}:${env:IMAGE_TAG}"
-
-                        if ($LASTEXITCODE -ne 0) {
-                            throw 'Versioned image push failed.'
-                        }
-
-                        docker push "${env:IMAGE_NAME}:latest"
-
-                        if ($LASTEXITCODE -ne 0) {
-                            throw 'Latest image push failed.'
-                        }
-
-                        docker logout
-                    '''
-                }
-            }
-        }
-
-        stage('Deploy Container') {
-            steps {
-                powershell """
-                    \$ErrorActionPreference = 'Stop'
-
-                    docker rm -f "${env.CONTAINER_NAME}" 2>\$null
-
-                    Write-Host 'Starting fresh application container.'
-
-                    docker run -d `
-                        --name "${env.CONTAINER_NAME}" `
-                        -p 8081:8080 `
-                        "${env.IMAGE_NAME}:${env.IMAGE_TAG}"
-
-                    if (\$LASTEXITCODE -ne 0) {
-                        throw 'Container deployment failed.'
-                    }
-                """
-            }
-        }
-
-        stage('Verify Deployment') {
-            steps {
-                powershell """
-                    \$ErrorActionPreference = 'Stop'
-                    \$ok = \$false
-
-                    for (\$i = 0; \$i -lt 30; \$i++) {
                         try {
-                            \$response = Invoke-WebRequest `
-                                -Uri 'http://localhost:8081/digital-wallet/' `
-                                -TimeoutSec 3 `
-                                -UseBasicParsing
+                            [void]$process.Start()
 
-                            if (\$response.StatusCode -eq 200) {
-                                \$ok = \$true
-                                break
+                            $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+                            $stderrTask = $process.StandardError.ReadToEndAsync()
+
+                            $process.StandardInput.WriteLine($env:DOCKERHUB_TOKEN)
+                            $process.StandardInput.Close()
+
+                            $process.WaitForExit()
+
+                            $stdout = $stdoutTask.Result
+                            $stderr = $stderrTask.Result
+
+                            if ($stdout) {
+                                Write-Host $stdout.Trim()
                             }
-                        } catch {
-                            Start-Sleep -Seconds 2
-                        }
-                    }
 
-                    if (-not \$ok) {
-                        docker logs "${env.CONTAINER_NAME}"
-                        throw 'Deployment verification failed.'
-                    }
-
-                    docker ps --filter "name=${env.CONTAINER_NAME}"
-                    Write-Host 'Deployment passed: HTTP 200'
-                """
-            }
-        }
-    }
-
-    post {
-        success {
-            echo 'Digital Wallet image published and container deployed successfully.'
-        }
-
-        failure {
-            echo 'Pipeline failed. Review the failed stage logs.'
-        }
-    }
-}
-
-pipeline {
-    agent any
-
-    environment {
-        JAVA_HOME = tool 'PyCharm-Java21'
-        MAVEN_HOME = 'D:\\Maven\\apache-maven-3.10.0'
-        PATH = "${JAVA_HOME}\\bin;${MAVEN_HOME}\\bin;${PATH}"
-
-        IMAGE_NAME = 'divyapawar110806/digital-wallet'
-        IMAGE_TAG = "${BUILD_NUMBER}"
-        CONTAINER_NAME = 'digital-wallet-container'
-    }
-
-    stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
-        stage('Build WAR') {
-            steps {
-                bat 'mvn clean package -DskipTests'
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                bat 'docker build -t %IMAGE_NAME%:%IMAGE_TAG% .'
-                bat 'docker tag %IMAGE_NAME%:%IMAGE_TAG% %IMAGE_NAME%:latest'
-                bat 'docker image inspect %IMAGE_NAME%:%IMAGE_TAG%'
-            }
-        }
-
-        stage('Smoke Test Image') {
-            steps {
-                script {
-                    def candidate =
-                        "digital-wallet-candidate-${env.BUILD_NUMBER}"
-
-                    try {
-                        bat "docker run -d --name ${candidate} -p 8082:8080 ${env.IMAGE_NAME}:${env.IMAGE_TAG}"
-
-                        powershell """
-                            \$ErrorActionPreference = 'Stop'
-                            \$ok = \$false
-
-                            for (\$i = 0; \$i -lt 30; \$i++) {
-                                try {
-                                    \$response = Invoke-WebRequest `
-                                        -Uri 'http://localhost:8082/digital-wallet/' `
-                                        -TimeoutSec 3 `
-                                        -UseBasicParsing
-
-                                    if (\$response.StatusCode -eq 200) {
-                                        \$ok = \$true
-                                        break
-                                    }
-                                } catch {
-                                    Start-Sleep -Seconds 2
+                            if ($process.ExitCode -ne 0) {
+                                if ($stderr) {
+                                    Write-Host $stderr.Trim()
                                 }
+                                throw 'Docker Hub login failed. Token value was not displayed.'
                             }
 
-                            if (-not \$ok) {
-                                docker logs ${candidate}
-                                throw 'Docker image smoke test failed.'
+                            Write-Host 'Docker Hub login succeeded.'
+                        }
+                        finally {
+                            if ($process -and -not $process.HasExited) {
+                                $process.Kill()
+                                $process.WaitForExit()
                             }
 
-                            Write-Host 'Smoke test passed: HTTP 200'
-                        """
-                    } finally {
-                        bat(
-                            script: "docker rm -f ${candidate} 2>NUL",
-                            returnStatus: true
-                        )
-                    }
-                }
-            }
-        }
-
-        stage('Publish to Docker Hub') {
-            steps {
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'dockerhub-creds',
-                        usernameVariable: 'DOCKERHUB_USER',
-                        passwordVariable: 'DOCKERHUB_TOKEN'
-                    )
-                ]) {
-                    powershell '''
-                        $ErrorActionPreference = 'Stop'
-
-                        if ([string]::IsNullOrWhiteSpace($env:DOCKERHUB_USER)) {
-                            throw 'Docker Hub username is missing.'
-                        }
-
-                        if ([string]::IsNullOrWhiteSpace($env:DOCKERHUB_TOKEN)) {
-                            throw 'Docker Hub token was not supplied by Jenkins.'
-                        }
-
-                        Write-Host 'Docker Hub username is available.'
-                        Write-Host 'Docker Hub token is available (value hidden).'
-
-                        $env:DOCKERHUB_TOKEN |
-                            docker login --username $env:DOCKERHUB_USER --password-stdin
-
-                        if ($LASTEXITCODE -ne 0) {
-                            throw 'Docker Hub login failed. Check the saved Jenkins credential.'
+                            if ($process) {
+                                $process.Dispose()
+                            }
                         }
 
                         docker push "${env:IMAGE_NAME}:${env:IMAGE_TAG}"
-
                         if ($LASTEXITCODE -ne 0) {
                             throw 'Versioned image push failed.'
                         }
 
                         docker push "${env:IMAGE_NAME}:latest"
-
                         if ($LASTEXITCODE -ne 0) {
                             throw 'Latest image push failed.'
                         }
+
+                        Write-Host 'Both image tags were pushed successfully.'
 
                         docker logout
                     '''
@@ -386,3 +237,4 @@ pipeline {
         }
     }
 }
+```
