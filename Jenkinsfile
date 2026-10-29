@@ -82,7 +82,7 @@ pipeline {
             steps {
                 withCredentials([
                     usernamePassword(
-                        credentialsId: 'dockerhub-creds',
+                        credentialsId: 'dockerhub-pat-2026',
                         usernameVariable: 'DOCKERHUB_USER',
                         passwordVariable: 'DOCKERHUB_TOKEN'
                     )
@@ -116,6 +116,8 @@ pipeline {
                         $env:DOCKER_CONFIG = $dockerConfig
 
                         try {
+                            Write-Host 'Attempting Docker Hub login...'
+
                             $token | docker login `
                                 --username $user `
                                 --password-stdin
