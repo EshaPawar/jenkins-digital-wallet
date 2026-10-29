@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -97,74 +98,59 @@ pipeline {
                             throw 'Docker Hub token was not supplied by Jenkins.'
                         }
 
-                        Write-Host 'Docker Hub username is available.'
-                        Write-Host 'Docker Hub token is available (value hidden).'
+                        # Use an isolated Docker configuration for this build.
+                        $env:DOCKER_CONFIG = Join-Path `
+                            $env:TEMP `
+                            "jenkins-docker-config-$env:BUILD_NUMBER"
 
-                        $startInfo = New-Object System.Diagnostics.ProcessStartInfo
-                        $startInfo.FileName = (Get-Command docker.exe -ErrorAction Stop).Source
-                        $startInfo.Arguments = "login --username `"$env:DOCKERHUB_USER`" --password-stdin"
-                        $startInfo.UseShellExecute = $false
-                        $startInfo.CreateNoWindow = $true
-                        $startInfo.RedirectStandardInput = $true
-                        $startInfo.RedirectStandardOutput = $true
-                        $startInfo.RedirectStandardError = $true
+                        New-Item `
+                            -ItemType Directory `
+                            -Path $env:DOCKER_CONFIG `
+                            -Force | Out-Null
 
-                        $process = New-Object System.Diagnostics.Process
-                        $process.StartInfo = $startInfo
+                        Write-Host 'Attempting Docker Hub login...'
+
+                        $env:DOCKERHUB_TOKEN |
+                            docker login `
+                                --username $env:DOCKERHUB_USER `
+                                --password-stdin
+
+                        if ($LASTEXITCODE -ne 0) {
+                            throw 'Docker Hub login failed. Check the Docker login output above.'
+                        }
+
+                        Write-Host 'Docker Hub login succeeded.'
 
                         try {
-                            [void]$process.Start()
+                            docker push "${env:IMAGE_NAME}:${env:IMAGE_TAG}"
 
-                            $stdoutTask = $process.StandardOutput.ReadToEndAsync()
-                            $stderrTask = $process.StandardError.ReadToEndAsync()
-
-                            # Send the credential only through stdin.
-                            $process.StandardInput.WriteLine($env:DOCKERHUB_TOKEN)
-                            $process.StandardInput.Close()
-
-                            $process.WaitForExit()
-
-                            $stdout = $stdoutTask.Result
-                            $stderr = $stderrTask.Result
-
-                            if ($stdout) {
-                                Write-Host $stdout.Trim()
+                            if ($LASTEXITCODE -ne 0) {
+                                throw 'Versioned image push failed.'
                             }
 
-                            if ($process.ExitCode -ne 0) {
-                                # Do not print stderr because it may contain
-                                # details that should not appear in build logs.
-                                throw "Docker Hub login failed (exit code $($process.ExitCode)). Check the credential ID, username, and token type."
+                            docker push "${env:IMAGE_NAME}:latest"
+
+                            if ($LASTEXITCODE -ne 0) {
+                                throw 'Latest image push failed.'
                             }
 
-                            Write-Host 'Docker Hub login succeeded.'
+                            Write-Host 'Both image tags were pushed successfully.'
                         }
                         finally {
-                            if ($process -and -not $process.HasExited) {
-                                $process.Kill()
-                                $process.WaitForExit()
+                            docker logout
+
+                            if ($LASTEXITCODE -ne 0) {
+                                Write-Warning 'Docker logout did not complete successfully.'
                             }
 
-                            if ($process) {
-                                $process.Dispose()
+                            # Remove the temporary Docker configuration.
+                            if (Test-Path $env:DOCKER_CONFIG) {
+                                Remove-Item `
+                                    -Path $env:DOCKER_CONFIG `
+                                    -Recurse `
+                                    -Force `
+                                    -ErrorAction SilentlyContinue
                             }
-                        }
-
-                        docker push "${env:IMAGE_NAME}:${env:IMAGE_TAG}"
-                        if ($LASTEXITCODE -ne 0) {
-                            throw 'Versioned image push failed.'
-                        }
-
-                        docker push "${env:IMAGE_NAME}:latest"
-                        if ($LASTEXITCODE -ne 0) {
-                            throw 'Latest image push failed.'
-                        }
-
-                        Write-Host 'Both image tags were pushed successfully.'
-
-                        docker logout
-                        if ($LASTEXITCODE -ne 0) {
-                            Write-Warning 'Docker logout did not complete successfully.'
                         }
                     '''
                 }
